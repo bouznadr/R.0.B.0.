@@ -84,9 +84,15 @@ bool UGravityGunComponent::TraceForGrab(FHitResult& HitResult) const
 	return false;
 }
 
-void UGravityGunComponent::PullObject()
+bool UGravityGunComponent::CanGrabObject() const
 {
-	if (!PhysicsHandle) return;
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	return (LastThrowTime < 0.f || CurrentTime - LastThrowTime > ThrowCooldownTime);
+}
+
+void UGravityGunComponent::GrabObject()
+{
+	if (!PhysicsHandle || !CanGrabObject()) return;
 
 	if (!GrabbedComponent)
 	{
@@ -105,6 +111,29 @@ void UGravityGunComponent::PullObject()
 		}
 	}
 }
+
+void UGravityGunComponent::ThrowObject(float Force)
+{
+	if (!GrabbedComponent) return;
+
+	AActor* Owner = GetOwner();
+	if (!Owner) return;
+
+	FVector CameraLoc;
+	FRotator CameraRot;
+	if (APlayerController* PC = Cast<APlayerController>(Owner->GetInstigatorController()))
+	{
+		PC->GetPlayerViewPoint(CameraLoc, CameraRot);
+
+		FVector PushDir = CameraRot.Vector();
+		GrabbedComponent->AddImpulse(PushDir * Force, NAME_None, true);
+
+		LastThrowTime = GetWorld()->GetTimeSeconds();
+
+		ReleaseObject();
+	}
+}
+
 
 void UGravityGunComponent::ReleaseObject()
 {

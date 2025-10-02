@@ -26,7 +26,10 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION(BlueprintCallable, Category = "GravityGun")
-	void PullObject();
+	void GrabObject();
+
+	UFUNCTION(BlueprintCallable, Category = "GravityGun")
+	void ThrowObject(float Force = 1000.f);
 
 	UFUNCTION(BlueprintCallable, Category = "GravityGun")
 	void ReleaseObject();
@@ -41,11 +44,17 @@ private:
 	UPROPERTY(EditAnywhere)
 	float InterpSpeed = 1.f;
 
+	UPROPERTY(EditAnywhere)
+	float ThrowCooldownTime = 0.5f;
+
 	UPROPERTY()
 	UPhysicsHandleComponent* PhysicsHandle;
 
 	UPROPERTY()
 	UPrimitiveComponent* GrabbedComponent;
 
+	float LastThrowTime = -1.f;
+
 	bool TraceForGrab(FHitResult& HitResult) const;
+	bool CanGrabObject() const;
 };
