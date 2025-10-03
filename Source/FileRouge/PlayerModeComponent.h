@@ -38,19 +38,19 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Modes")
     EPlayerMode CurrentMode;
 
-    /** Passe au mode suivant */
+    // Passe au mode suivant
     UFUNCTION(BlueprintCallable, Category = "Modes")
     void NextMode();
 
-    /** Passe au mode précédent */
+    // Passe au mode précéden
     UFUNCTION(BlueprintCallable, Category = "Modes")
     void PreviousMode();
 
-    /** Change de mode en fonction d'une direction (+1 ou -1) */
+    // Change de mode en fonction d'une direction (+1 ou -1)
     UFUNCTION(BlueprintCallable, Category = "Modes")
     void SwitchMode(int32 Direction);
 
-    /** Retourne le mode actuel */
+    // Retourne le mode actuel
     UFUNCTION(BlueprintPure, Category = "Modes")
     EPlayerMode GetCurrentMode() const { return CurrentMode; }
 };
