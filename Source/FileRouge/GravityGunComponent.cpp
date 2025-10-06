@@ -143,3 +143,15 @@ void UGravityGunComponent::ReleaseObject()
 		GrabbedComponent = nullptr;
 	}
 }
+
+void UGravityGunComponent::ActivateGravityGun()
+{
+	SetComponentTickEnabled(true);
+	SetActive(true);
+}
+
+void UGravityGunComponent::DeactivateGravityGun()
+{
+	SetComponentTickEnabled(false);
+	SetActive(false);
+}
