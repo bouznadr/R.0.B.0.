@@ -34,6 +34,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GravityGun")
 	void ReleaseObject();
 
+	UFUNCTION(BlueprintCallable, Category = "GravityGun")
+	void ActivateGravityGun();
+
+	UFUNCTION(BlueprintCallable, Category = "GravityGun")
+	void DeactivateGravityGun();
+
 private:
 	UPROPERTY(EditAnywhere)
 	float TraceDistance = 1500.f;
