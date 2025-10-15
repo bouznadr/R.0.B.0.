@@ -63,10 +63,10 @@ private:
 	UPrimitiveComponent* GrabbedComponent;
 
 	UPROPERTY(EditAnywhere, Category = "VFX")
-	UNiagaraSystem* BeamVFX;  // Référence au système Niagara
+	UNiagaraSystem* BeamVFX;
 
 	UPROPERTY()
-	UNiagaraComponent* ActiveBeam; // Instance du beam en jeu
+	UNiagaraComponent* ActiveBeam;
 
 	float LastThrowTime = -1.f;
 

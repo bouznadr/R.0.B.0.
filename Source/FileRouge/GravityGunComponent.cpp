@@ -5,7 +5,9 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "DrawDebugHelpers.h"
-
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 
 // Sets default values for this component's properties
 UGravityGunComponent::UGravityGunComponent()
@@ -46,18 +48,22 @@ void UGravityGunComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 			FVector TargetLoc = CameraLoc + CameraRot.Vector() * HoldDistance;
 			PhysicsHandle->SetTargetLocationAndRotation(TargetLoc, CameraRot);
 
-			// Update Niagara Beam position
+			// Update Niagara Beam position - le beam va de l'arme vers l'objet saisi
 			if (ActiveBeam)
 			{
-				ActiveBeam->SetVectorParameter(TEXT("SourcePoint"), Owner->GetActorLocation());
-				ActiveBeam->SetVectorParameter(TEXT("TargetPoint"), TargetLoc);
+				FVector GunLocation = Owner->GetActorLocation();
+				FVector GrabbedObjectLocation = GrabbedComponent->GetComponentLocation();
+
+				ActiveBeam->SetVectorParameter(TEXT("Beam Start"), GunLocation);
+				ActiveBeam->SetVectorParameter(TEXT("Beam End"), GrabbedObjectLocation);
 			}
 		}
 	}
 	else if (ActiveBeam)
 	{
-		ActiveBeam->SetVectorParameter(TEXT("SourcePoint"), FVector::ZeroVector);
-		ActiveBeam->SetVectorParameter(TEXT("TargetPoint"), FVector::ZeroVector);
+		// Désactiver le beam quand aucun objet n'est saisi
+		ActiveBeam->SetVectorParameter(TEXT("Beam Start"), FVector::ZeroVector);
+		ActiveBeam->SetVectorParameter(TEXT("Beam End"), FVector::ZeroVector);
 	}
 }
 
@@ -117,6 +123,35 @@ void UGravityGunComponent::GrabObject()
 					NAME_None,
 					GrabbedComponent->GetComponentLocation()
 				);
+
+				// Activer le beam Niagara quand un objet est saisi
+				if (BeamVFX && !ActiveBeam)
+				{
+					AActor* Owner = GetOwner();
+					if (Owner)
+					{
+						FVector GunLocation = Owner->GetActorLocation();
+						FRotator GunRotation = Owner->GetActorRotation();
+
+						ActiveBeam = UNiagaraFunctionLibrary::SpawnSystemAttached(
+							BeamVFX,
+							Owner->GetRootComponent(),
+							NAME_None,
+							GunLocation,
+							GunRotation,
+							EAttachLocation::KeepWorldPosition,
+							true
+						);
+
+						// Initialiser immédiatement la position du beam
+						if (ActiveBeam)
+						{
+							FVector GrabbedObjectLocation = GrabbedComponent->GetComponentLocation();
+							ActiveBeam->SetVectorParameter(TEXT("Beam Start"), GunLocation);
+							ActiveBeam->SetVectorParameter(TEXT("Beam End"), GrabbedObjectLocation);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -150,6 +185,13 @@ void UGravityGunComponent::ReleaseObject()
 	{
 		PhysicsHandle->ReleaseComponent();
 		GrabbedComponent = nullptr;
+
+		// Désactiver le beam quand l'objet est relâché
+		if (ActiveBeam)
+		{
+			ActiveBeam->Deactivate();
+			ActiveBeam = nullptr;
+		}
 	}
 }
 
@@ -157,27 +199,6 @@ void UGravityGunComponent::ActivateGravityGun()
 {
 	SetComponentTickEnabled(true);
 	SetActive(true);
-
-	// Vérifie que ton NiagaraSystem existe
-	if (BeamVFX && !ActiveBeam)
-	{
-		AActor* Owner = GetOwner();
-		if (!Owner) return;
-
-		// Récupère la position du socket du mesh
-		FVector MuzzleLocation = Owner->GetActorLocation();
-		FRotator MuzzleRotation = Owner->GetActorRotation();
-
-		ActiveBeam = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			BeamVFX,
-			Owner->GetRootComponent(),
-			NAME_None,
-			MuzzleLocation,
-			MuzzleRotation,
-			EAttachLocation::KeepWorldPosition,
-			true
-		);
-	}
 }
 
 void UGravityGunComponent::DeactivateGravityGun()
