@@ -5,15 +5,18 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "GravityGunComponent.generated.h"
 
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class FILEROUGE_API UGravityGunComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
 	// Sets default values for this component's properties
 	UGravityGunComponent();
 
@@ -21,7 +24,7 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
@@ -59,8 +62,15 @@ private:
 	UPROPERTY()
 	UPrimitiveComponent* GrabbedComponent;
 
+	UPROPERTY(EditAnywhere, Category = "VFX")
+	UNiagaraSystem* BeamVFX;  // Référence au système Niagara
+
+	UPROPERTY()
+	UNiagaraComponent* ActiveBeam; // Instance du beam en jeu
+
 	float LastThrowTime = -1.f;
 
 	bool TraceForGrab(FHitResult& HitResult) const;
 	bool CanGrabObject() const;
+
 };

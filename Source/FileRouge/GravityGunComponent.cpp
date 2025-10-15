@@ -1,18 +1,17 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "GravityGunComponent.h"
 #include "GameFramework/Actor.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "DrawDebugHelpers.h"
 
+
 // Sets default values for this component's properties
 UGravityGunComponent::UGravityGunComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 }
-
 
 // Called when the game starts
 void UGravityGunComponent::BeginPlay()
@@ -27,7 +26,6 @@ void UGravityGunComponent::BeginPlay()
 		GetOwner()->AddInstanceComponent(PhysicsHandle);
 	}
 }
-
 
 // Called every frame
 void UGravityGunComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -47,7 +45,19 @@ void UGravityGunComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 
 			FVector TargetLoc = CameraLoc + CameraRot.Vector() * HoldDistance;
 			PhysicsHandle->SetTargetLocationAndRotation(TargetLoc, CameraRot);
+
+			// Update Niagara Beam position
+			if (ActiveBeam)
+			{
+				ActiveBeam->SetVectorParameter(TEXT("SourcePoint"), Owner->GetActorLocation());
+				ActiveBeam->SetVectorParameter(TEXT("TargetPoint"), TargetLoc);
+			}
 		}
+	}
+	else if (ActiveBeam)
+	{
+		ActiveBeam->SetVectorParameter(TEXT("SourcePoint"), FVector::ZeroVector);
+		ActiveBeam->SetVectorParameter(TEXT("TargetPoint"), FVector::ZeroVector);
 	}
 }
 
@@ -134,7 +144,6 @@ void UGravityGunComponent::ThrowObject(float Force)
 	}
 }
 
-
 void UGravityGunComponent::ReleaseObject()
 {
 	if (PhysicsHandle && GrabbedComponent)
@@ -148,10 +157,37 @@ void UGravityGunComponent::ActivateGravityGun()
 {
 	SetComponentTickEnabled(true);
 	SetActive(true);
+
+	// Vérifie que ton NiagaraSystem existe
+	if (BeamVFX && !ActiveBeam)
+	{
+		AActor* Owner = GetOwner();
+		if (!Owner) return;
+
+		// Récupère la position du socket du mesh
+		FVector MuzzleLocation = Owner->GetActorLocation();
+		FRotator MuzzleRotation = Owner->GetActorRotation();
+
+		ActiveBeam = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			BeamVFX,
+			Owner->GetRootComponent(),
+			NAME_None,
+			MuzzleLocation,
+			MuzzleRotation,
+			EAttachLocation::KeepWorldPosition,
+			true
+		);
+	}
 }
 
 void UGravityGunComponent::DeactivateGravityGun()
 {
 	SetComponentTickEnabled(false);
 	SetActive(false);
+
+	if (ActiveBeam)
+	{
+		ActiveBeam->Deactivate();
+		ActiveBeam = nullptr;
+	}
 }
