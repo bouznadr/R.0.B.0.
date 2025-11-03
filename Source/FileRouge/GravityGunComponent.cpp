@@ -13,6 +13,13 @@
 UGravityGunComponent::UGravityGunComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> BeamVFXAsset(TEXT("/All/Game/05-Niagara"));
+
+	if (BeamVFXAsset.Succeeded())
+	{
+		BeamVFX = BeamVFXAsset.Object;
+	}
 }
 
 // Called when the game starts

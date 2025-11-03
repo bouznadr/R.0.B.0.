@@ -62,7 +62,7 @@ private:
 	UPROPERTY()
 	UPrimitiveComponent* GrabbedComponent;
 
-	UPROPERTY(EditAnywhere, Category = "VFX")
+	UPROPERTY()
 	UNiagaraSystem* BeamVFX;
 
 	UPROPERTY()
