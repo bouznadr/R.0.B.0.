@@ -14,7 +14,7 @@ UGravityGunComponent::UGravityGunComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> BeamVFXAsset(TEXT("/All/Game/05-Niagara"));
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> BeamVFXAsset(TEXT("/Game/05-Niagara/NS_GravityGunBeam"));
 
 	if (BeamVFXAsset.Succeeded())
 	{
