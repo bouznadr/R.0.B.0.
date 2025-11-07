@@ -13,5 +13,4 @@ UCLASS()
 class FILEROUGE_API AFileRougeGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
-	
 };
