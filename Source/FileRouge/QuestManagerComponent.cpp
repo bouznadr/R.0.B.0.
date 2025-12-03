@@ -6,9 +6,7 @@
 // Sets default values for this component's properties
 UQuestManagerComponent::UQuestManagerComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 // Called when the game starts
@@ -19,11 +17,11 @@ void UQuestManagerComponent::BeginPlay()
 	InitializeQuests();
 }
 
+// Charge toutes les quêtes de la DataTable
 void UQuestManagerComponent::InitializeQuests()
 {
     if (!QuestDataTable) return;
 
-    // Charge toutes les quêtes de la DataTable
     static const FString Context(TEXT("QuestManager_Init"));
     TArray<FName> RowNames = QuestDataTable->GetRowNames();
 
@@ -36,6 +34,7 @@ void UQuestManagerComponent::InitializeQuests()
     }
 }
 
+// Démarre une quête si les prérequis sont remplis
 bool UQuestManagerComponent::StartQuest(FName QuestID)
 {
     if (!AllQuests.Contains(QuestID))
@@ -46,7 +45,6 @@ bool UQuestManagerComponent::StartQuest(FName QuestID)
 
     if (ActiveQuests.Contains(QuestID) || CompletedQuests.Contains(QuestID))
     {
-        // Déjà active ou terminée
         return false;
     }
 
@@ -66,6 +64,7 @@ bool UQuestManagerComponent::StartQuest(FName QuestID)
     return true;
 }
 
+// Complète une quête active
 bool UQuestManagerComponent::CompleteQuest(FName QuestID)
 {
     if (!ActiveQuests.Contains(QuestID))
@@ -81,12 +80,12 @@ bool UQuestManagerComponent::CompleteQuest(FName QuestID)
     UE_LOG(LogTemp, Log, TEXT("Quest completed: %s"), *Quest.DisplayName.ToString());
     OnQuestCompleted.Broadcast(Quest);
 
-    // Débloque les quêtes liées
     UnlockLinkedQuests(Quest);
 
     return true;
 }
 
+// Vérifie si les prérequis d'une quête sont remplis
 bool UQuestManagerComponent::AreRequirementsMet(const FS_Quest& Quest) const
 {
     for (const FName& ReqID : Quest.RequiredQuestIDs)
@@ -99,6 +98,7 @@ bool UQuestManagerComponent::AreRequirementsMet(const FS_Quest& Quest) const
     return true;
 }
 
+// Débloque les quêtes liées après la complétion d'une quête
 void UQuestManagerComponent::UnlockLinkedQuests(const FS_Quest& Quest)
 {
     for (const FName& LinkedID : Quest.LinkedQuestIDs)
@@ -109,16 +109,18 @@ void UQuestManagerComponent::UnlockLinkedQuests(const FS_Quest& Quest)
         if (AreRequirementsMet(LinkedQuest))
         {
             UE_LOG(LogTemp, Log, TEXT("Quest unlocked: %s"), *LinkedQuest.DisplayName.ToString());
-            StartQuest(LinkedID); // Démarrage auto des quêtes narratives suivantes
+            StartQuest(LinkedID);
         }
     }
 }
 
+// Vérifie si une quête est complétée
 bool UQuestManagerComponent::IsQuestCompleted(FName QuestID) const
 {
     return CompletedQuests.Contains(QuestID);
 }
 
+// Vérifie si une quête est active
 bool UQuestManagerComponent::IsQuestActive(FName QuestID) const
 {
     return ActiveQuests.Contains(QuestID);
