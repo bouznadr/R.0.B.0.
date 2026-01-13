@@ -58,7 +58,7 @@ void UGravityGunComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 			// Update Niagara Beam position - le beam va de l'arme vers l'objet saisi
 			if (ActiveBeam)
 			{
-				FVector GunLocation = Owner->GetActorLocation();
+				//FVector GunLocation = Owner->GetActorLocation();
 				FVector GrabbedObjectLocation = GrabbedComponent->GetComponentLocation();
 
 				ActiveBeam->SetVectorParameter(TEXT("Beam Start"), GunLocation);
@@ -137,7 +137,6 @@ void UGravityGunComponent::GrabObject()
 					AActor* Owner = GetOwner();
 					if (Owner)
 					{
-						FVector GunLocation = Owner->GetActorLocation();
 						FRotator GunRotation = Owner->GetActorRotation();
 
 						ActiveBeam = UNiagaraFunctionLibrary::SpawnSystemAttached(

@@ -43,6 +43,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GravityGun")
 	void DeactivateGravityGun();
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FVector GunLocation = FVector(0, 0, 0);
 private:
 	UPROPERTY(EditAnywhere)
 	float TraceDistance = 1500.f;
