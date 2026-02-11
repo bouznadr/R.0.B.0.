@@ -8,6 +8,8 @@
 #include "NiagaraSystem.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Kismet/GameplayStatics.h"
+#include "UObject/ConstructorHelpers.h"
 
 // Sets default values for this component's properties
 UGravityGunComponent::UGravityGunComponent()
@@ -25,7 +27,7 @@ UGravityGunComponent::UGravityGunComponent()
 // Called when the game starts
 void UGravityGunComponent::BeginPlay()
 {
-	Super::BeginPlay();
+	UActorComponent::BeginPlay();
 
 	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
 	if (!PhysicsHandle)
@@ -39,7 +41,7 @@ void UGravityGunComponent::BeginPlay()
 // Called every frame
 void UGravityGunComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	UActorComponent::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	if (PhysicsHandle && GrabbedComponent)
 	{
@@ -58,7 +60,6 @@ void UGravityGunComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 			// Update Niagara Beam position - le beam va de l'arme vers l'objet saisi
 			if (ActiveBeam)
 			{
-				FVector GunLocation = Owner->GetActorLocation();
 				FVector GrabbedObjectLocation = GrabbedComponent->GetComponentLocation();
 
 				ActiveBeam->SetVectorParameter(TEXT("Beam Start"), GunLocation);
@@ -115,6 +116,8 @@ bool UGravityGunComponent::CanGrabObject() const
 
 void UGravityGunComponent::GrabObject()
 {
+	if (!IsActive()) return;
+
 	if (!PhysicsHandle || !CanGrabObject()) return;
 
 	if (!GrabbedComponent)
@@ -137,7 +140,6 @@ void UGravityGunComponent::GrabObject()
 					AActor* Owner = GetOwner();
 					if (Owner)
 					{
-						FVector GunLocation = Owner->GetActorLocation();
 						FRotator GunRotation = Owner->GetActorRotation();
 
 						ActiveBeam = UNiagaraFunctionLibrary::SpawnSystemAttached(
@@ -149,6 +151,18 @@ void UGravityGunComponent::GrabObject()
 							EAttachLocation::KeepWorldPosition,
 							true
 						);
+
+						if (GrabLoopSound && !ActiveGrabSound)
+						{
+							ActiveGrabSound = UGameplayStatics::SpawnSoundAttached(
+								GrabLoopSound,
+								GetOwner()->GetRootComponent(),
+								NAME_None,
+								FVector::ZeroVector,
+								EAttachLocation::KeepRelativeOffset,
+								false
+							);
+						}
 
 						// Initialiser immédiatement la position du beam
 						if (ActiveBeam)
@@ -166,6 +180,8 @@ void UGravityGunComponent::GrabObject()
 
 void UGravityGunComponent::ThrowObject(float Force)
 {
+	if (!IsActive()) return;
+
 	if (!GrabbedComponent) return;
 
 	AActor* Owner = GetOwner();
@@ -199,6 +215,12 @@ void UGravityGunComponent::ReleaseObject()
 			ActiveBeam->Deactivate();
 			ActiveBeam = nullptr;
 		}
+
+		if (ActiveGrabSound)
+		{
+			ActiveGrabSound->FadeOut(0.15f, 0.f);
+			ActiveGrabSound = nullptr;
+		}
 	}
 }
 
@@ -212,6 +234,8 @@ void UGravityGunComponent::DeactivateGravityGun()
 {
 	SetComponentTickEnabled(false);
 	SetActive(false);
+
+	ReleaseObject();
 
 	if (ActiveBeam)
 	{

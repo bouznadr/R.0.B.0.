@@ -8,8 +8,9 @@
 #include "NiagaraSystem.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Sound/SoundBase.h"
+#include "Components/AudioComponent.h"
 #include "GravityGunComponent.generated.h"
-
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class FILEROUGE_API UGravityGunComponent : public UActorComponent
@@ -43,6 +44,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GravityGun")
 	void DeactivateGravityGun();
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FVector GunLocation = FVector(0, 0, 0);
+
 private:
 	UPROPERTY(EditAnywhere)
 	float TraceDistance = 1500.f;
@@ -68,9 +72,14 @@ private:
 	UPROPERTY()
 	UNiagaraComponent* ActiveBeam;
 
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	USoundBase* GrabLoopSound;
+
+	UPROPERTY()
+	UAudioComponent* ActiveGrabSound;
+
 	float LastThrowTime = -1.f;
 
 	bool TraceForGrab(FHitResult& HitResult) const;
 	bool CanGrabObject() const;
-
 };
