@@ -8,8 +8,7 @@
 // Sets default values for this component's properties
 UCameraSweepComponent::UCameraSweepComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
+	// Set this component to be initialized when the game starts, and to be ticked every frame.
 	PrimaryComponentTick.bCanEverTick = true;
 	bGoingRight = true;
 }
@@ -20,11 +19,21 @@ void UCameraSweepComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	float Distance = FMath::Abs(RightYaw - LeftYaw);
-	SweepSpeed = Distance / Duration;
+    float Distance = FMath::Abs(RightYaw - LeftYaw);
+    SweepSpeed = Distance / Duration;
 
-	CurrentYaw = LeftYaw;
-	TargetYaw = RightYaw;
+    bGoingRight = StartGoingRight;
+
+    if (bGoingRight)
+    {
+        CurrentYaw = LeftYaw;
+        TargetYaw = RightYaw;
+    }
+    else
+    {
+        CurrentYaw = RightYaw;
+        TargetYaw = LeftYaw;
+    }
 }
 
 void UCameraSweepComponent::StartSweep()
@@ -50,9 +59,18 @@ void UCameraSweepComponent::StopSweep()
 void UCameraSweepComponent::ResetSweep()
 {
     StopSweep();
-    bGoingRight = true;
-    CurrentYaw = LeftYaw;
-    TargetYaw = RightYaw;
+    bGoingRight = StartGoingRight;
+
+    if (bGoingRight)
+    {
+        CurrentYaw = LeftYaw;
+        TargetYaw = RightYaw;
+    }
+    else
+    {
+        CurrentYaw = RightYaw;
+        TargetYaw = LeftYaw;
+    }
 }
 
 void UCameraSweepComponent::PerformSweepStep()
