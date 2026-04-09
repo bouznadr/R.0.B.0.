@@ -32,6 +32,8 @@ protected:
 
 public:	
     // ----- CONFIG -----
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraSweep", meta = (Tooltip = "Détermine la direction de départ : true = droite, false = gauche"))
+    bool StartGoingRight = true;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraSweep")
     float LeftYaw = -45.0f;
 
