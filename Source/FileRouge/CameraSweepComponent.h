@@ -24,9 +24,11 @@ protected:
 	FTimerHandle SweepTimerHandle;
 	bool bGoingRight;
 
-	float CurrentYaw;
-	float TargetYaw;
-	float SweepSpeed;
+	//float CurrentYaw;
+    //float TargetYaw;
+    float SweepSpeed;
+    FRotator NewRot;
+    FRotator beginRot;
 
 public:	
     // ----- CONFIG -----
@@ -38,6 +40,12 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraSweep")
     float Duration = 2.0f;
+
+    UPROPERTY(BlueprintReadOnly, Category = "CameraSweep")
+    float CurrentYaw = 0;
+
+    UPROPERTY(BlueprintReadOnly, Category = "CameraSweep")
+    float TargetYaw;
 
     // ----- DISPATCHERS -----
     UPROPERTY(BlueprintAssignable, Category = "CameraSweep")

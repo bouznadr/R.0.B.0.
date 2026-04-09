@@ -23,12 +23,21 @@ void UCameraSweepComponent::BeginPlay()
 	float Distance = FMath::Abs(RightYaw - LeftYaw);
 	SweepSpeed = Distance / Duration;
 
-	CurrentYaw = LeftYaw;
-	TargetYaw = RightYaw;
+
+    if (!GetOwner()) return;
+    beginRot = GetOwner()->GetActorRotation();
+
+    NewRot = beginRot;
+
+    CurrentYaw = LeftYaw + beginRot.Yaw;
+    TargetYaw = RightYaw + beginRot.Yaw;
+
+
 }
 
 void UCameraSweepComponent::StartSweep()
 {
+
     if (GetWorld())
     {
         GetWorld()->GetTimerManager().SetTimer(
@@ -62,21 +71,22 @@ void UCameraSweepComponent::PerformSweepStep()
     float DeltaYaw = SweepSpeed * 0.01f;
     if (!bGoingRight) DeltaYaw *= -1;
 
-    CurrentYaw += DeltaYaw;
 
-    FRotator NewRot = GetOwner()->GetActorRotation();
-    NewRot.Yaw = CurrentYaw;
+    NewRot.Yaw = CurrentYaw + DeltaYaw;
+
     GetOwner()->SetActorRotation(NewRot);
 
-    if (bGoingRight && CurrentYaw >= RightYaw)
+    CurrentYaw = NewRot.Yaw;
+
+    if (bGoingRight && CurrentYaw >= RightYaw + beginRot.Yaw)
     {
-        CurrentYaw = RightYaw;
+        //CurrentYaw = RightYaw + beginRot.Yaw;
         OnReachedRightLimit.Broadcast();
         SwitchDirection();
     }
-    else if (!bGoingRight && CurrentYaw <= LeftYaw)
+    else if (!bGoingRight && CurrentYaw <= LeftYaw + beginRot.Yaw)
     {
-        CurrentYaw = LeftYaw;
+        //CurrentYaw = LeftYaw + beginRot.Yaw;
         OnReachedLeftLimit.Broadcast();
         SwitchDirection();
     }
