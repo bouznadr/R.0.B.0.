@@ -8,7 +8,8 @@
 // Sets default values for this component's properties
 UCameraSweepComponent::UCameraSweepComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.
+	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
+	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 	bGoingRight = true;
 }
@@ -19,25 +20,24 @@ void UCameraSweepComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-    float Distance = FMath::Abs(RightYaw - LeftYaw);
-    SweepSpeed = Distance / Duration;
+	float Distance = FMath::Abs(RightYaw - LeftYaw);
+	SweepSpeed = Distance / Duration;
 
-    bGoingRight = StartGoingRight;
 
-    if (bGoingRight)
-    {
-        CurrentYaw = LeftYaw;
-        TargetYaw = RightYaw;
-    }
-    else
-    {
-        CurrentYaw = RightYaw;
-        TargetYaw = LeftYaw;
-    }
+    if (!GetOwner()) return;
+    beginRot = GetOwner()->GetActorRotation();
+
+    NewRot = beginRot;
+
+    CurrentYaw = LeftYaw + beginRot.Yaw;
+    TargetYaw = RightYaw + beginRot.Yaw;
+
+
 }
 
 void UCameraSweepComponent::StartSweep()
 {
+
     if (GetWorld())
     {
         GetWorld()->GetTimerManager().SetTimer(
@@ -59,18 +59,9 @@ void UCameraSweepComponent::StopSweep()
 void UCameraSweepComponent::ResetSweep()
 {
     StopSweep();
-    bGoingRight = StartGoingRight;
-
-    if (bGoingRight)
-    {
-        CurrentYaw = LeftYaw;
-        TargetYaw = RightYaw;
-    }
-    else
-    {
-        CurrentYaw = RightYaw;
-        TargetYaw = LeftYaw;
-    }
+    bGoingRight = true;
+    CurrentYaw = LeftYaw;
+    TargetYaw = RightYaw;
 }
 
 void UCameraSweepComponent::PerformSweepStep()
@@ -80,21 +71,22 @@ void UCameraSweepComponent::PerformSweepStep()
     float DeltaYaw = SweepSpeed * 0.01f;
     if (!bGoingRight) DeltaYaw *= -1;
 
-    CurrentYaw += DeltaYaw;
 
-    FRotator NewRot = GetOwner()->GetActorRotation();
-    NewRot.Yaw = CurrentYaw;
+    NewRot.Yaw = CurrentYaw + DeltaYaw;
+
     GetOwner()->SetActorRotation(NewRot);
 
-    if (bGoingRight && CurrentYaw >= RightYaw)
+    CurrentYaw = NewRot.Yaw;
+
+    if (bGoingRight && CurrentYaw >= RightYaw + beginRot.Yaw)
     {
-        CurrentYaw = RightYaw;
+        //CurrentYaw = RightYaw + beginRot.Yaw;
         OnReachedRightLimit.Broadcast();
         SwitchDirection();
     }
-    else if (!bGoingRight && CurrentYaw <= LeftYaw)
+    else if (!bGoingRight && CurrentYaw <= LeftYaw + beginRot.Yaw)
     {
-        CurrentYaw = LeftYaw;
+        //CurrentYaw = LeftYaw + beginRot.Yaw;
         OnReachedLeftLimit.Broadcast();
         SwitchDirection();
     }
