@@ -126,8 +126,13 @@ void UGravityGunComponent::GrabObject()
 		if (TraceForGrab(Hit))
 		{
 			GrabbedComponent = Hit.GetComponent();
-			if (GrabbedComponent && GrabbedComponent->IsSimulatingPhysics())
+
+			if (GrabbedComponent)
 			{
+				GrabbedComponent->SetSimulatePhysics(true);
+				GrabbedComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+				GrabbedComponent->WakeAllRigidBodies();
+
 				PhysicsHandle->GrabComponentAtLocation(
 					GrabbedComponent,
 					NAME_None,
@@ -206,7 +211,15 @@ void UGravityGunComponent::ReleaseObject()
 {
 	if (PhysicsHandle && GrabbedComponent)
 	{
+		UPrimitiveComponent* ReleasedComponent = GrabbedComponent;
+
 		PhysicsHandle->ReleaseComponent();
+
+		ReleasedComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		ReleasedComponent->SetSimulatePhysics(true);
+
+		ReleasedComponent->WakeAllRigidBodies();
+
 		GrabbedComponent = nullptr;
 
 		// Désactiver le beam quand l'objet est relâché
@@ -216,6 +229,7 @@ void UGravityGunComponent::ReleaseObject()
 			ActiveBeam = nullptr;
 		}
 
+		// Désactiver le son
 		if (ActiveGrabSound)
 		{
 			ActiveGrabSound->FadeOut(0.15f, 0.f);
