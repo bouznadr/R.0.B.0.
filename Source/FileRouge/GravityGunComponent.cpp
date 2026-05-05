@@ -45,6 +45,12 @@ void UGravityGunComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 
 	if (PhysicsHandle && GrabbedComponent)
 	{
+		if (!IsValid(GrabbedComponent))
+		{
+			ReleaseObject();
+			return;
+		}
+
 		AActor* Owner = GetOwner();
 		if (!Owner) return;
 
@@ -126,8 +132,13 @@ void UGravityGunComponent::GrabObject()
 		if (TraceForGrab(Hit))
 		{
 			GrabbedComponent = Hit.GetComponent();
-			if (GrabbedComponent && GrabbedComponent->IsSimulatingPhysics())
+
+			if (GrabbedComponent)
 			{
+				GrabbedComponent->SetSimulatePhysics(true);
+				GrabbedComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+				GrabbedComponent->WakeAllRigidBodies();
+
 				PhysicsHandle->GrabComponentAtLocation(
 					GrabbedComponent,
 					NAME_None,
@@ -204,18 +215,29 @@ void UGravityGunComponent::ThrowObject(float Force)
 
 void UGravityGunComponent::ReleaseObject()
 {
-	if (PhysicsHandle && GrabbedComponent)
+	if (PhysicsHandle)
 	{
+		UPrimitiveComponent* ReleasedComponent = GrabbedComponent;
+
 		PhysicsHandle->ReleaseComponent();
+
+		if (IsValid(ReleasedComponent))
+		{
+			ReleasedComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			ReleasedComponent->SetSimulatePhysics(true);
+			ReleasedComponent->WakeAllRigidBodies();
+		}
+
 		GrabbedComponent = nullptr;
 
-		// Désactiver le beam quand l'objet est relâché
+		// Désactiver le beam
 		if (ActiveBeam)
 		{
 			ActiveBeam->Deactivate();
 			ActiveBeam = nullptr;
 		}
 
+		// Désactiver le son
 		if (ActiveGrabSound)
 		{
 			ActiveGrabSound->FadeOut(0.15f, 0.f);
