@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{AB1377BE-41B4-F4D5-C9E5-CCAA6B70E5C0}",
+	"EngineAssociation": "{D80B6AA0-4F4C-4841-CCB2-0BA48BA1B775}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -9,8 +9,7 @@
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [
-				"Engine",
-				"EngineAssetDefinitions"
+				"Engine"
 			]
 		}
 	],
