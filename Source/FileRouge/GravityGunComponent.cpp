@@ -91,18 +91,13 @@ bool UGravityGunComponent::TraceForGrab(FHitResult& HitResult) const
 	if (APlayerController* PC = Cast<APlayerController>(Owner->GetInstigatorController()))
 	{
 		PC->GetPlayerViewPoint(CameraLoc, CameraRot);
-
 		FVector End = CameraLoc + CameraRot.Vector() * TraceDistance;
 
 		FCollisionQueryParams Params;
 		Params.AddIgnoredActor(Owner);
 
 		bool bHit = GetWorld()->LineTraceSingleByChannel(
-			HitResult,
-			CameraLoc,
-			End,
-			ECC_PhysicsBody,
-			Params
+			HitResult, CameraLoc, End, ECC_PhysicsBody, Params
 		);
 
 		if (bHit && HitResult.GetActor() && HitResult.GetActor()->ActorHasTag(FName("Grab")))
@@ -110,7 +105,6 @@ bool UGravityGunComponent::TraceForGrab(FHitResult& HitResult) const
 			return true;
 		}
 	}
-
 	return false;
 }
 
@@ -122,68 +116,74 @@ bool UGravityGunComponent::CanGrabObject() const
 
 void UGravityGunComponent::GrabObject()
 {
-	if (!IsActive()) return;
+	if (!IsActive() || !PhysicsHandle || !CanGrabObject()) return;
+	if (GrabbedComponent) return;
 
-	if (!PhysicsHandle || !CanGrabObject()) return;
+	FHitResult Hit;
+	if (!TraceForGrab(Hit)) return;
 
-	if (!GrabbedComponent)
+	AActor* HitActor = Hit.GetActor();
+	if (!HitActor) return;
+
+	TArray<UStaticMeshComponent*> MeshComps;
+	HitActor->GetComponents<UStaticMeshComponent>(MeshComps);
+
+	if (MeshComps.Num() == 0) return;
+
+	UPrimitiveComponent* HitPrim = Hit.GetComponent();
+
+	UPrimitiveComponent* TargetComp = HitPrim ? HitPrim : MeshComps[0];
+
+	TargetComp->SetSimulatePhysics(true);
+	TargetComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	TargetComp->WakeAllRigidBodies();
+
+	for (UStaticMeshComponent* Mesh : MeshComps)
 	{
-		FHitResult Hit;
-		if (TraceForGrab(Hit))
+		if (Mesh && Mesh != TargetComp)
 		{
-			GrabbedComponent = Hit.GetComponent();
+			// Désactiver leur physique indépendante
+			Mesh->SetSimulatePhysics(false);
 
-			if (GrabbedComponent)
+			// Les souder au composant cible
+			Mesh->WeldTo(TargetComp, NAME_None);
+		}
+	}
+
+	GrabbedComponent = TargetComp;
+
+	PhysicsHandle->GrabComponentAtLocation(
+		GrabbedComponent,
+		NAME_None,
+		GrabbedComponent->GetComponentLocation()
+	);
+
+	// Beam Niagara
+	if (BeamVFX && !ActiveBeam)
+	{
+		AActor* Owner = GetOwner();
+		if (Owner)
+		{
+			ActiveBeam = UNiagaraFunctionLibrary::SpawnSystemAttached(
+				BeamVFX, Owner->GetRootComponent(), NAME_None,
+				GunLocation, Owner->GetActorRotation(),
+				EAttachLocation::KeepWorldPosition, true
+			);
+
+			if (GrabLoopSound && !ActiveGrabSound)
 			{
-				GrabbedComponent->SetSimulatePhysics(true);
-				GrabbedComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-				GrabbedComponent->WakeAllRigidBodies();
-
-				PhysicsHandle->GrabComponentAtLocation(
-					GrabbedComponent,
-					NAME_None,
-					GrabbedComponent->GetComponentLocation()
+				ActiveGrabSound = UGameplayStatics::SpawnSoundAttached(
+					GrabLoopSound, GetOwner()->GetRootComponent(),
+					NAME_None, FVector::ZeroVector,
+					EAttachLocation::KeepRelativeOffset, false
 				);
+			}
 
-				// Activer le beam Niagara quand un objet est saisi
-				if (BeamVFX && !ActiveBeam)
-				{
-					AActor* Owner = GetOwner();
-					if (Owner)
-					{
-						FRotator GunRotation = Owner->GetActorRotation();
-
-						ActiveBeam = UNiagaraFunctionLibrary::SpawnSystemAttached(
-							BeamVFX,
-							Owner->GetRootComponent(),
-							NAME_None,
-							GunLocation,
-							GunRotation,
-							EAttachLocation::KeepWorldPosition,
-							true
-						);
-
-						if (GrabLoopSound && !ActiveGrabSound)
-						{
-							ActiveGrabSound = UGameplayStatics::SpawnSoundAttached(
-								GrabLoopSound,
-								GetOwner()->GetRootComponent(),
-								NAME_None,
-								FVector::ZeroVector,
-								EAttachLocation::KeepRelativeOffset,
-								false
-							);
-						}
-
-						// Initialiser immédiatement la position du beam
-						if (ActiveBeam)
-						{
-							FVector GrabbedObjectLocation = GrabbedComponent->GetComponentLocation();
-							ActiveBeam->SetVectorParameter(TEXT("Beam Start"), GunLocation);
-							ActiveBeam->SetVectorParameter(TEXT("Beam End"), GrabbedObjectLocation);
-						}
-					}
-				}
+			if (ActiveBeam)
+			{
+				ActiveBeam->SetVectorParameter(TEXT("Beam Start"), GunLocation);
+				ActiveBeam->SetVectorParameter(TEXT("Beam End"),
+					GrabbedComponent->GetComponentLocation());
 			}
 		}
 	}
@@ -215,34 +215,45 @@ void UGravityGunComponent::ThrowObject(float Force)
 
 void UGravityGunComponent::ReleaseObject()
 {
-	if (PhysicsHandle)
+	if (!PhysicsHandle) return;
+
+	UPrimitiveComponent* ReleasedComponent = GrabbedComponent;
+	AActor* HitActor = ReleasedComponent ? ReleasedComponent->GetOwner() : nullptr;
+
+	PhysicsHandle->ReleaseComponent();
+
+	if (IsValid(ReleasedComponent))
 	{
-		UPrimitiveComponent* ReleasedComponent = GrabbedComponent;
-
-		PhysicsHandle->ReleaseComponent();
-
-		if (IsValid(ReleasedComponent))
+		if (HitActor)
 		{
-			ReleasedComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-			ReleasedComponent->SetSimulatePhysics(true);
-			ReleasedComponent->WakeAllRigidBodies();
+			TArray<UStaticMeshComponent*> MeshComps;
+			HitActor->GetComponents<UStaticMeshComponent>(MeshComps);
+			for (UStaticMeshComponent* Mesh : MeshComps)
+			{
+				if (Mesh && Mesh != ReleasedComponent)
+				{
+					Mesh->UnWeldFromParent();
+				}
+			}
 		}
 
-		GrabbedComponent = nullptr;
+		ReleasedComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		ReleasedComponent->SetSimulatePhysics(true);
+		ReleasedComponent->WakeAllRigidBodies();
+	}
 
-		// Désactiver le beam
-		if (ActiveBeam)
-		{
-			ActiveBeam->Deactivate();
-			ActiveBeam = nullptr;
-		}
+	GrabbedComponent = nullptr;
 
-		// Désactiver le son
-		if (ActiveGrabSound)
-		{
-			ActiveGrabSound->FadeOut(0.15f, 0.f);
-			ActiveGrabSound = nullptr;
-		}
+	if (ActiveBeam)
+	{
+		ActiveBeam->Deactivate();
+		ActiveBeam = nullptr;
+	}
+
+	if (ActiveGrabSound)
+	{
+		ActiveGrabSound->FadeOut(0.15f, 0.f);
+		ActiveGrabSound = nullptr;
 	}
 }
 
